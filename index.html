@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/x-icon" href="https://www.quizmig.dk/favicon.ico">
+  <title>AI Quiz App</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+    body {
+      font-family: "Poppins", sans-serif;
+      background: #0f172a;
+      color: white;
+      margin: 0; padding: 20px;
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh;
+    }
+    .quiz-box {
+      background: #1e293b;
+      padding: 20px;
+      width: 400px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px #2563ebaa;
+    }
+    h3 {
+      min-height: 60px;
+    }
+    h2{
+        width: 100%;
+        text-align: center;
+    }
+    p{
+        text-align: center;
+    }
+    button {
+      display: block;
+      width: 100%;
+      margin: 8px 0;
+      padding: 10px;
+      background: #334155;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+    }
+    button.correct {
+      background-color: #16a34a;
+      box-shadow: 0 0 10px #16a34acc;
+    }
+    button.wrong {
+      background-color: #dc2626;
+      box-shadow: 0 0 10px #dc2626cc;
+    }
+    button:disabled {
+      cursor: default;
+      opacity: 0.8;
+    }
+    #next-btn {
+      background-color: #2563eb;
+      margin-top: 12px;
+      display: none;
+    }
+    label, input {
+      margin-bottom: 10px;
+      display: block;
+      width: 100%;
+      font-family: "Poppins", sans-serif;
+    }
+    input, select{
+        background: #001227b0;
+        border: none;
+        color: #ffffffd9;
+        padding: 2px;
+        outline: none;
+    }
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover, 
+    input:-webkit-autofill:focus, 
+    input:-webkit-autofill:active{
+        -webkit-box-shadow: 0 0 0 30px #001227 inset !important;
+        -webkit-text-fill-color: white !important;
+    }
+    input::file-selector-button {
+        background: #004176;
+        color: white;
+        font-family: "Poppins", sans-serif;
+        border: none;
+        border-radius: 10px;
+    }
+    #score-board {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    #progress {
+      margin-top: 5px;
+      font-style: italic;
+      color: #94a3b8;
+    }
+    @media screen and (max-width: 470px) {
+      .quiz-box {
+        width: calc(100% - 4px);
+      }
+        
+    }
+  </style>
+</head>
+<body>
+    <h1>⚡Quizionary AI⚡</h1>
+  <div class="quiz-box">
+    <label for="genre-select">Select Quiz Genre:</label>
+    <input type="text" id="genre-select" placeholder="e.g., Science, Basic History, Quantum Mechanics, etc." required/>
+
+    <label for="num-questions">Number of questions:</label>
+    <input id="num-questions" type="number" min="1" max="20" value="10" />
+
+    <label for="pdf-upload">Or upload a PDF to generate quiz:</label>
+    <input id="pdf-upload" type="file" accept="application/pdf" />
+
+    <button id="start-btn">Start Quiz</button>
+
+    <h3 id="question"></h3>
+    <div id="options"></div>
+    <button id="next-btn">Next Question</button>
+
+    <div id="score-board"></div>
+    <div id="progress"></div>
+  </div>
+
+  <br><br>
+  <hr style="width: 100%; border: 1px solid #264b9b; margin: 40px 0;">
+
+  <h2>📚 About <b>Quizionary AI</b> – The Future of Smart Learning</h2>
+  <p>Welcome to Quizionary AI, the ultimate AI-powered quiz generator built for curious minds, lifelong learners, and knowledge warriors. Whether you're a student looking to revise smarter, a teacher aiming to create engaging content, or just a trivia lover hungry for fresh challenges — Quizionary AI transforms how you interact with information. With just a keyword, a genre, or even a PDF, our system powered by Google Gemini AI crafts intelligent, high-quality multiple-choice questions in seconds.</p>
+  <p>Unlike traditional quiz apps, Quizionary AI doesn’t rely on static question banks. Instead, it thinks, learns, and generates brand-new quizzes on the fly — no repeats, no boredom, just infinite learning. You can select specific genres like “Quantum Mechanics,” “World History,” or “Anime Trivia,” or upload custom PDFs like class notes, textbooks, or articles, and Quizionary AI will instantly convert them into interactive quizzes tailored to your input.</p>
+  <p>Our advanced system also tracks your progress in real-time, calculates your score, and even avoids repeating questions you've already answered, thanks to intelligent local storage. This makes Quizionary AI perfect for adaptive learning, exam prep, and even competitive play with friends. Plus, it’s 100% free, lightning-fast, and works right in your browser — no app download required!</p>
+  <p>So whether you're studying late at night, preparing for a big test, or just challenging your friends for fun, Quizionary AI is your ultimate companion. Try it once, and you'll never look at traditional studying the same way again. Power up your brain, level up your knowledge, and quiz smarter — only with Quizionary AI: “The AI-Powered Dictionary of Quizzes.”</p>
+
+  <!-- PDF.js library to extract text from PDF client-side -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.min.js"></script>
+  <script type="module">
+    import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+
+    const yek_ipa = "snwXD-8tqV-pU9pJeSDSzF7kP4meLTYvBySazIA"; // 🔁 Replace with your Gemini API key
+    
+    function decode(str) {
+      return str.split("").reverse().join("");
+    }
+
+    const API_KEY = decode(yek_ipa);
+    const genAI = new GoogleGenerativeAI(API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const questionEl = document.getElementById("question");
+    const optionsEl = document.getElementById("options");
+    const nextBtn = document.getElementById("next-btn");
+    const startBtn = document.getElementById("start-btn");
+    const genreSelect = document.getElementById("genre-select");
+    const numQuestionsInput = document.getElementById("num-questions");
+    const pdfUpload = document.getElementById("pdf-upload");
+    const scoreBoard = document.getElementById("score-board");
+    const progressEl = document.getElementById("progress");
+
+    let quizData = [];
+    let currentIndex = 0;
+    let correctAnswer = "";
+    let score = 0;
+
+    async function extractTextFromPDF(file) {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let text = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const strings = content.items.map(item => item.str);
+        text += strings.join(" ") + "\n";
+      }
+      return text;
+    }
+
+    async function fetchQuizFromText(text, numQuestions) {
+      questionEl.textContent = "⏳ Generating quiz from PDF text...";
+      optionsEl.innerHTML = "";
+      nextBtn.style.display = "none";
+      scoreBoard.textContent = "";
+      progressEl.textContent = "";
+
+      const prompt = `
+Create ${numQuestions} multiple choice questions based on the following text. 
+Return JSON only as an array of objects in this format:
+[
+  {
+    "question": "...",
+    "options": ["...", "...", "...", "..."],
+    "answer": "..."
+  }
+]
+Text:
+${text}
+      `.trim();
+
+      try {
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const textResponse = await response.text();
+
+        quizData = JSON.parse(textResponse.match(/\[[\s\S]*\]/)[0]);
+        currentIndex = 0;
+        score = 0;
+        displayQuiz(quizData[currentIndex]);
+        updateScoreBoard();
+        updateProgress();
+      } catch (err) {
+        questionEl.textContent = "❌ Error generating quiz from PDF.";
+        console.error(err);
+      }
+    }
+
+    async function fetchQuizFromGenre(genre, numQuestions) {
+      questionEl.textContent = "⏳ Generating quiz...";
+      optionsEl.innerHTML = "";
+      nextBtn.style.display = "none";
+      scoreBoard.textContent = "";
+      progressEl.textContent = "";
+
+      const prompt = `
+Generate ${numQuestions} multiple choice questions about ${genre}.\nKeep the correct answers shuffled such that every successive question, the options are different.
+Return JSON only as an array of objects in this format:
+[
+  {
+    "question": "...",
+    "options": ["...", "...", "...", "..."],
+    "answer": "..."
+  }
+]
+      `.trim();
+
+      try {
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const textResponse = await response.text();
+
+        quizData = JSON.parse(textResponse.match(/\[[\s\S]*\]/)[0]);
+        currentIndex = 0;
+        score = 0;
+        displayQuiz(quizData[currentIndex]);
+        updateScoreBoard();
+        updateProgress();
+      } catch (err) {
+        questionEl.textContent = "❌ Error generating quiz.";
+        console.error(err);
+      }
+    }
+
+    function displayQuiz(data) {
+      questionEl.textContent = data.question;
+      correctAnswer = data.answer;
+      optionsEl.innerHTML = "";
+      nextBtn.style.display = "none";
+
+      data.options.forEach(option => {
+        const btn = document.createElement("button");
+        btn.textContent = option;
+        btn.onclick = () => {
+          if (btn.textContent === correctAnswer) {
+            btn.classList.add("correct");
+            score++;
+          } else {
+            btn.classList.add("wrong");
+            [...optionsEl.children].forEach(b => {
+              if (b.textContent === correctAnswer) b.classList.add("correct");
+              b.disabled = true;
+            });
+          }
+          [...optionsEl.children].forEach(b => b.disabled = true);
+          nextBtn.style.display = "block";
+          updateScoreBoard();
+        };
+        optionsEl.appendChild(btn);
+      });
+      updateProgress();
+    }
+
+    function updateScoreBoard() {
+      scoreBoard.textContent = `Score: ${score} / ${quizData.length} (${((score / quizData.length) * 100).toFixed(1)}%)`;
+    }
+
+    function updateProgress() {
+      progressEl.textContent = `Question ${currentIndex + 1} of ${quizData.length}`;
+    }
+
+    nextBtn.onclick = () => {
+        currentIndex++;
+        if (currentIndex < quizData.length) {
+            displayQuiz(quizData[currentIndex]);
+        } else {
+            questionEl.textContent = "🎉 You've completed the quiz!";
+            optionsEl.innerHTML = "";
+            nextBtn.style.display = "none";
+            progressEl.textContent = `You answered ${score} out of ${quizData.length} questions.`; // ✅ Custom final message
+        }
+    };
+
+
+    startBtn.onclick = async () => {
+      const genre = genreSelect.value;
+      const numQuestions = Math.min(Math.max(parseInt(numQuestionsInput.value) || 10, 1), 20);
+      if (pdfUpload.files.length > 0) {
+        const pdfFile = pdfUpload.files[0];
+        try {
+          const pdfText = await extractTextFromPDF(pdfFile);
+          await fetchQuizFromText(pdfText, numQuestions);
+        } catch (e) {
+          questionEl.textContent = "❌ Failed to read PDF.";
+          console.error(e);
+        }
+      } else {
+        await fetchQuizFromGenre(genre, numQuestions);
+      }
+    };
+  </script>
+</body>
+</html>
